@@ -45,6 +45,8 @@
 * Update **.gitlab-ci.yml** `variables` section THEME_PATH to make front gitlab CI works.
 * Run `make all`
 
+* using https://k3s.io/ instead of docker `curl -sfL https://get.k3s.io | sh -`
+* `make up`
 
 #### Used variables
 

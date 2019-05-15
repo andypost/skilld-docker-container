@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  upstream: |
+    upstream upstream {
+      server localhost:9000;
+    }
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sdc
+  labels:
+    name: sdc-pod
+spec:
+  restartPolicy: Always
+  containers:
+    - name: php
+      image: skilldlabs/php:73-fpm
+#      command: ['php-fpm7', '-F', '-d', 'zend_extension=xdebug.so']
+#      command: [ "ash", "-c", "--" ]
+#      args: [ "while true; do sleep 30; done;" ]
+#      args: [ 'apk del php7-opcache && php -S 0.0.0.0:80 index.php' ]
+      ports:
+      - containerPort: 9000
+        protocol: TCP
+      volumeMounts:
+      - mountPath: /var/www/html
+        name: codebase
+      - mountPath: /var/www/html/web/sites/default/files/css
+        name: cache-css
+      - mountPath: /var/www/html/web/sites/default/files/js
+        name: cache-js
+      - mountPath: /var/www/html/web/sites/default/files/php
+        name: cache-php
+#      securityContext:
+#        runAsUser: 1000
+    - name: nginx
+      image: skilldlabs/nginx:1.16
+      ports:
+      - containerPort: 80
+        protocol: TCP
+      volumeMounts:
+      - mountPath: /var/www/html
+        name: codebase
+      - mountPath: /etc/nginx/upstream
+        name: nginx-config
+        subPath: upstream
+      - mountPath: /var/www/html/web/sites/default/files/css
+        name: cache-css
+      - mountPath: /var/www/html/web/sites/default/files/js
+        name: cache-js
+  volumes:
+    - name: codebase
+      hostPath:
+        path: /home/andypost/www/skilld/skilld-docker-container
+        type: Directory
+    - name: nginx-config
+      configMap:
+        name: nginx-config
+    - name: cache-js
+      emptyDir:
+        medium: Memory
+    - name: cache-css
+      emptyDir:
+        medium: Memory
+    - name: cache-php
+      emptyDir:
+        medium: Memory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sdc
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    name: sdc-pod
+  type: ClusterIP
+---
+#apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: sdc
+spec:
+  rules:
+  - http:
+      host: sdc # add it to hosts
+      paths:
+      - backend:
+          serviceName: sdc
+          servicePort: 80
+  - http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: sdc
+          servicePort: 80

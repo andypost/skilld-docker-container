@@ -101,11 +101,11 @@ info:
 
 ## Run shell in PHP container as regular user
 exec:
-	docker-compose exec --user $(CUID):$(CGID) php ash
+	kubectl exec -it sdc -c php -- su -s /bin/ash www-data -c ash
 
 ## Run shell in PHP container as root
 exec0:
-	docker-compose exec --user 0:0 php ash
+	kubectl exec -it sdc -c php -- ash
 
 down:
 	@echo "Removing network & containers for $(COMPOSE_PROJECT_NAME)"
